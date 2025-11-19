@@ -54,3 +54,24 @@
 4. Address accessibility: add `aria-*` metadata to toggles/icons, connect labels to inputs, and provide readable link text (or `aria-label`s) for social icons.
 5. Clean up lint issues and unused files/config keys. Removing the dead `setLines` setter, unused `color` entries, and `App.css` template will keep `npm run lint`/`npm run build` green.
 6. Update the documentation (`README.md`, `index.html` metadata) to reflect Ambitious Realism, add usage instructions, and describe the Gemini agent's deliverable for future stakeholders.
+
+---
+
+## Follow-up Review – Round 2
+
+### Improvements since last review
+- **Tailwind actually wired up.** The project now imports Tailwind v4 and defines shared theme tokens in `src/index.css:1-34`, `tailwind.config.js:1-24`, and `postcss.config.js:1-5`, so all of the previously inert utility classes render as intended.
+- **CTA wiring restored.** Header/menu items, card CTAs, pricing buttons, and social icons now link to real sections or destinations (`src/components/Navbar.jsx:17-42`, `src/components/Services.jsx:57-73`, `src/components/Pricing.jsx:64-86`, `src/components/Footer.jsx:17-60`). The contact form also has controlled inputs and a faux submission flow (`src/components/Contact.jsx:7-106`), so there is finally a conversion path.
+- **Hero animation made client-safe.** Randomized floating icons are generated inside a `useEffect` so the component no longer reads `window` during render (`src/components/Hero.jsx:11-24`), addressing the SSR/StrictMode concern.
+- **Accessibility touch-ups.** The mobile toggle has descriptive ARIA, form fields use `htmlFor`/`id` pairs, and icon-only links expose labels (`src/components/Navbar.jsx:30-36`, `src/components/Contact.jsx:34-83`, `src/components/Footer.jsx:17-29`).
+- **Polished docs/metadata.** The README and `index.html` now reference Ambitious Realism instead of the stock Vite template (`README.md:1-39`, `index.html:1-12`).
+
+### Remaining / new issues
+1. **Terminal never actually shows the dynamically appended line.**  
+   - After the first five boot messages finish, `isTyping` flips to `false` and the typing effect halts (`src/components/TerminalSection.jsx:20-40`). Five seconds later another effect tries to append `"> SYSTEM READY."` to `lines` to justify keeping `setLines`, but that state change does nothing because the typing loop exits early and never restarts. Users therefore never see the “system ready” message, and the component still contains unnecessary state churn.
+
+2. **Hero gradient references a non-existent CSS variable.**  
+   - The parallax backdrop still uses `var(--primary-color)` (`src/components/Hero.jsx:29`), yet the Tailwind theme only defines `--color-primary` (`src/index.css:4-9`). CSS resolves `var(--primary-color)` to nothing, so the hero’s radial glow silently disappears. This regression reintroduces the “flat hero” problem that the first review called out.
+
+3. **Placeholder legal links persist.**  
+   - The legal column still ships with bare `href="#"` anchors (`src/components/Footer.jsx:44-50`). Clicking them either scrolls to the top or does nothing, which undermines trust on a SaaS landing page and was one of the original high-severity findings. Even placeholder content should either open stub pages or be removed until ready.
